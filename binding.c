@@ -8,7 +8,7 @@
 
 #include <X11/Xlib.h>
 
-#include "x11.h"
+#include "lib/x11.h"
 
 static void
 bare_x11__on_display_finalize(js_env_t *env, void *data, void *finalize_hint) {
