@@ -198,6 +198,9 @@ bare_x11_translate_coordinates(js_env_t *env, js_callback_info_t *info) {
   err = js_set_named_property(env, result, "y", bare_x11__int32(env, y));
   assert(err == 0);
 
+  err = js_set_named_property(env, result, "child", bare_x11__uint32(env, (uint32_t) child));
+  assert(err == 0);
+
   return result;
 }
 
@@ -233,6 +236,91 @@ bare_x11_query_pointer(js_env_t *env, js_callback_info_t *info) {
 #undef V
 
   return result;
+}
+
+static js_value_t *
+bare_x11_query_tree(js_env_t *env, js_callback_info_t *info) {
+  DISPLAY(2)
+
+  Window window = bare_x11__get_uint32(env, argv[1]);
+
+  Window root, parent, *children;
+  unsigned int len;
+
+  if (!XQueryTree(display, window, &root, &parent, &children, &len)) {
+    return bare_x11__null(env);
+  }
+
+  js_value_t *list;
+  err = js_create_array_with_length(env, len, &list);
+  assert(err == 0);
+
+  for (unsigned int i = 0; i < len; i++) {
+    err = js_set_element(env, list, i, bare_x11__uint32(env, (uint32_t) children[i]));
+    assert(err == 0);
+  }
+
+  if (children) XFree(children);
+
+  js_value_t *result;
+  err = js_create_object(env, &result);
+  assert(err == 0);
+
+#define V(name, value) \
+  err = js_set_named_property(env, result, name, value); \
+  assert(err == 0);
+
+  V("root", bare_x11__uint32(env, (uint32_t) root))
+  V("parent", bare_x11__uint32(env, (uint32_t) parent))
+  V("children", list)
+#undef V
+
+  return result;
+}
+
+static js_value_t *
+bare_x11_create_simple_window(js_env_t *env, js_callback_info_t *info) {
+  DISPLAY(9)
+
+  Window parent = bare_x11__get_uint32(env, argv[1]);
+  int x = bare_x11__get_int32(env, argv[2]);
+  int y = bare_x11__get_int32(env, argv[3]);
+  unsigned int width = bare_x11__get_uint32(env, argv[4]);
+  unsigned int height = bare_x11__get_uint32(env, argv[5]);
+  unsigned int border_width = bare_x11__get_uint32(env, argv[6]);
+  unsigned long border = bare_x11__get_uint32(env, argv[7]);
+  unsigned long background = bare_x11__get_uint32(env, argv[8]);
+
+  Window window = XCreateSimpleWindow(display, parent, x, y, width, height, border_width, border, background);
+
+  return bare_x11__uint32(env, (uint32_t) window);
+}
+
+static js_value_t *
+bare_x11_destroy_window(js_env_t *env, js_callback_info_t *info) {
+  DISPLAY(2)
+
+  XDestroyWindow(display, bare_x11__get_uint32(env, argv[1]));
+
+  return NULL;
+}
+
+static js_value_t *
+bare_x11_map_window(js_env_t *env, js_callback_info_t *info) {
+  DISPLAY(2)
+
+  XMapWindow(display, bare_x11__get_uint32(env, argv[1]));
+
+  return NULL;
+}
+
+static js_value_t *
+bare_x11_raise_window(js_env_t *env, js_callback_info_t *info) {
+  DISPLAY(2)
+
+  XRaiseWindow(display, bare_x11__get_uint32(env, argv[1]));
+
+  return NULL;
 }
 
 static js_value_t *
@@ -301,6 +389,11 @@ bare_x11_exports(js_env_t *env, js_value_t *exports) {
   V("defaultRootWindow", bare_x11_default_root_window)
   V("translateCoordinates", bare_x11_translate_coordinates)
   V("queryPointer", bare_x11_query_pointer)
+  V("queryTree", bare_x11_query_tree)
+  V("createSimpleWindow", bare_x11_create_simple_window)
+  V("destroyWindow", bare_x11_destroy_window)
+  V("mapWindow", bare_x11_map_window)
+  V("raiseWindow", bare_x11_raise_window)
   V("keysymToKeycode", bare_x11_keysym_to_keycode)
   V("stringToKeysym", bare_x11_string_to_keysym)
   V("flush", bare_x11_flush)

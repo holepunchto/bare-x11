@@ -9,6 +9,15 @@ function open(t) {
   return display
 }
 
+// Windows go away with the display they were made on.
+function window(display, parent) {
+  const created = display.createSimpleWindow(parent, 0, 0, 100, 100, 0, 0, 0)
+
+  display.mapWindow(created)
+
+  return created
+}
+
 test('connects to the display', (t) => {
   const display = open(t)
 
@@ -45,7 +54,44 @@ test('translates between windows', (t) => {
   const display = open(t)
   const root = display.defaultRootWindow
 
-  t.alike(display.translateCoordinates(root, root, 5, 6), { x: 5, y: 6 })
+  t.alike(display.translateCoordinates(root, root, 5, 6), { x: 5, y: 6, child: 0 })
+})
+
+test('stacks windows and raises them', (t) => {
+  const display = open(t)
+  const root = display.defaultRootWindow
+
+  const below = window(display, root)
+  const above = window(display, root)
+
+  t.is(display.translateCoordinates(root, root, 50, 50).child, above, 'the newest on top')
+
+  display.raiseWindow(below)
+
+  t.is(display.translateCoordinates(root, root, 50, 50).child, below, 'the raised one on top')
+  t.is(display.translateCoordinates(root, root, 500, 500).child, 0, 'none outside them')
+})
+
+test('destroys a window', (t) => {
+  const display = open(t)
+  const root = display.defaultRootWindow
+
+  const destroyed = window(display, root)
+
+  display.destroyWindow(destroyed)
+
+  t.is(display.translateCoordinates(root, root, 50, 50).child, 0)
+})
+
+test('lists the windows in a window', (t) => {
+  const display = open(t)
+  const root = display.defaultRootWindow
+
+  const parent = window(display, root)
+  const first = window(display, parent)
+  const second = window(display, parent)
+
+  t.alike(display.queryTree(parent), { root, parent: root, children: [first, second] })
 })
 
 test('sends what it has buffered', (t) => {
