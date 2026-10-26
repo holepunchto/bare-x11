@@ -19,15 +19,15 @@ declare class X11Display {
   close(): void
 
   /**
-   * `XTranslateCoordinates()`: a point in `src` in the coordinates of `dest`, or `null` if the two
-   * are on different screens.
+   * `XTranslateCoordinates()`: a point in `src` in the coordinates of `dest`, and the child of
+   * `dest` that holds it or `0`, or `null` if the two are on different screens.
    */
   translateCoordinates(
     src: number,
     dest: number,
     x: number,
     y: number
-  ): { x: number; y: number } | null
+  ): { x: number; y: number; child: number } | null
 
   /** `XQueryPointer()`, or `null` if the pointer is on another screen than `window`. */
   queryPointer(window: number): {
@@ -39,6 +39,30 @@ declare class X11Display {
     y: number
     mask: number
   } | null
+
+  /** `XQueryTree()`, with the children from bottom to top, or `null` if it fails. */
+  queryTree(window: number): { root: number; parent: number; children: number[] } | null
+
+  /** `XCreateSimpleWindow()`. The window is unmapped until `mapWindow()`. */
+  createSimpleWindow(
+    parent: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    borderWidth: number,
+    border: number,
+    background: number
+  ): number
+
+  /** `XDestroyWindow()`. */
+  destroyWindow(window: number): void
+
+  /** `XMapWindow()`. */
+  mapWindow(window: number): void
+
+  /** `XRaiseWindow()`: put `window` on top of its siblings. */
+  raiseWindow(window: number): void
 
   /** `XKeysymToKeycode()`, or `0` if no key produces `keysym`. */
   keysymToKeycode(keysym: number): number
